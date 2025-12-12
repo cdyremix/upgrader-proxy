@@ -1,43 +1,44 @@
-// api/proxy.js  ←  WORKING UPGRADER PROXY (December 2025)
+// api/proxy.js - YOUR WORKING UPGRADER PROXY (Dec 12, 2025)
+const UPGRADER_API = 'https://api.upgrader.com/affiliate/creator/get-stats';
+const API_KEY = '2ad23c0d-685d-4be5-95a1-8a007db08153';  // Your key
 
-const UPGRADER_API = "https://api.upgrader.com/affiliate/creator/get-stats";
-const API_KEY = "2ad23c0d-685d-4be5-95a1-8a007db08153"; // ← your real key
+export default async function handler(req, res) {
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', 'https://yosoykush.fun');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(204).end();
+  }
 
-export default async function POST(req) {
-  const { from, to } = await req.json();
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: true, msg: 'Only POST allowed' });
+  }
 
+  const { from, to } = req.body || {};
   const payload = { apikey: API_KEY };
-  if (from) payload.from = from.split("T")[0];
-  if (to) payload.to = to.split("T")[0];
+  if (from) payload.from = from;
+  if (to) payload.to = to;
 
-  const res = await fetch(UPGRADER_API, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const apiRes = await fetch(UPGRADER_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-  const data = await res.json();
+    const data = await apiRes.json();
 
-  return new Response(JSON.stringify(data), {
-    status: res.ok ? 200 : 500,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "https://yosoykush.fun",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Cache-Control": "no-store",
-    },
-  });
-}
+    res.setHeader('Access-Control-Allow-Origin', 'https://yosoykush.fun');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Cache-Control', 'no-store');
 
-// Handle CORS preflight
-export async function OPTIONS() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "https://yosoykush.fun",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    },
-  });
+    if (!apiRes.ok || data.error) {
+      return res.status(500).json(data);
+    }
+
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error(err);
+    return res.status(502).json({ error: true, msg: 'Proxy error' });
+  }
 }
